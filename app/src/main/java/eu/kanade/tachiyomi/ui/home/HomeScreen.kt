@@ -175,7 +175,7 @@ object HomeScreen : Screen() {
                             navigator.push(DownloadQueueScreen)
                         }
                         if (it is Tab.Dictionary) {
-                            it.initialQuery?.let { query -> DictionaryTab.search(query) }
+                            it.initialQuery?.let { query -> DictionaryTab.search(query, it.fromExternal) }
                         }
                     }
                 }
@@ -313,7 +313,7 @@ object HomeScreen : Screen() {
         data object Updates : Tab
         data object History : Tab
         data class Browse(val toExtensions: Boolean = false) : Tab
-        data class Dictionary(val initialQuery: String? = null) : Tab
+        data class Dictionary(val initialQuery: String? = null, val fromExternal: Boolean = false) : Tab
         data class More(val toDownloads: Boolean) : Tab
     }
 }

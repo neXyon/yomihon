@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.ui.dictionary
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.runtime.Composable
@@ -7,6 +9,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -108,17 +111,40 @@ data object DictionaryTab : Tab {
             (context as? MainActivity)?.ready = true
         }
 
+        val activity = context as? Activity
+
+        DisposableEffect(activity) {
+            onDispose {
+                if (activity?.isChangingConfigurations != true) {
+                    screenModel.clearExternal()
+                }
+            }
+        }
+
+        BackHandler(enabled = state.isFromExternal) {
+            screenModel.clearExternal()
+            if (activity?.moveTaskToBack(true) != true) {
+                activity?.finish()
+            }
+        }
+
         LaunchedEffect(Unit) {
-            queryEvent.receiveAsFlow().collectLatest { query ->
+            queryEvent.receiveAsFlow().collectLatest { event ->
                 // Wait until dictionaries are loaded so the search can find enabled ones
                 screenModel.state.first { !it.isLoading }
-                screenModel.updateQuery(query)
-                screenModel.search(query)
+                if (event.fromExternal) {
+                    screenModel.searchFromExternal(event.query)
+                } else {
+                    screenModel.updateQuery(event.query)
+                    screenModel.search(event.query)
+                }
             }
         }
     }
 
     // For invoking search from other screens
-    private val queryEvent = Channel<String>()
-    suspend fun search(query: String) = queryEvent.send(query)
+    private data class QueryEvent(val query: String, val fromExternal: Boolean)
+    private val queryEvent = Channel<QueryEvent>(Channel.CONFLATED)
+    suspend fun search(query: String, fromExternal: Boolean = false) =
+        queryEvent.send(QueryEvent(query, fromExternal))
 }

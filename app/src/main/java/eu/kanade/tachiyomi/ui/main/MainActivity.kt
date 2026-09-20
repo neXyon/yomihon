@@ -563,14 +563,17 @@ class MainActivity : BaseActivity() {
                 }
                 null
             }
-            Intent.ACTION_TRANSLATE -> {
-                // System "translate" action: look the text up in the dictionary tab
-                val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_TRANSLATE, Intent.ACTION_PROCESS_TEXT -> {
+                // System "translate" or "process text" action: look the text up in the dictionary tab
+                val text = (
+                    intent.getCharSequenceExtra(Intent.EXTRA_TEXT)
+                        ?: intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)
+                    )?.toString()?.trim()
                 if (text.isNullOrBlank()) {
                     null
                 } else {
                     navigator.popUntilRoot()
-                    HomeScreen.Tab.Dictionary(initialQuery = text)
+                    HomeScreen.Tab.Dictionary(initialQuery = text, fromExternal = true)
                 }
             }
             Intent.ACTION_VIEW -> {
